@@ -44,4 +44,36 @@ When the Developer directs the Agent to save a transcript, save the entire text 
 
 # Project
 
-Fill in as the project takes shape: how to run it locally, how to test it, and any commands or structure that aren't obvious from the code.
+*Kinked Fury*: a 2D room-based action platformer whose core mechanic is a player-drawn, "unrealistic" chain-whip. See `pitch.md` for goals, scope, and the five-week map.
+
+## Layout
+
+- `project-5-template/`: project documents (`pitch.md`, this file). Do not edit `pitch.md` after Studio director approval.
+- `Kinked Fury/`: the Unity project (sibling of `project-5-template/`). Unity `6000.3.0f1`, URP 17.3, Input System 1.16, Test Framework 1.6, 2D packages. Scenes live in `Kinked Fury/Assets/Scenes/`.
+- Unity editors installed at `C:\Program Files\Unity\Hub\Editor\<version>\Editor\Unity.exe`. Use `6000.3.0f1` to match `ProjectSettings/ProjectVersion.txt`.
+
+## Architecture notes
+
+- The whip pipeline is: raw mouse stroke -> ordered list of swappable stroke processors (resample, Ramer-Douglas-Peucker simplify, Catmull-Rom smooth) -> processed points -> stat derivation -> whip playback and collider. Processors and stat derivation are plain C# with no scene dependencies so they can be unit tested. The pipeline is swappable on purpose so game feel can be compared between approaches. Decision: the Developer chose the "Simplify > Spline" chain (preset 4 in `WhipDrawingTester`) as the default after comparing by feel; the other presets stay available for tuning and comparison.
+- Hard cap on whip length; loadout of 2-3 saved shapes.
+
+## Agent authority and boundaries
+
+- **Free to act, without asking, inside `Kinked Fury/`:** create and edit scripts, scenes, prefabs, assets, and tests; run Unity in batch mode; run tests; take screenshots; fix compile errors.
+- **Must verify with the Developer before:** major changes (architecture changes, adding or removing packages, changing Unity version, render pipeline, or project settings, restructuring folders, deleting files or assets, large refactors), and anything outside `Kinked Fury/`.
+- **Never commit or push without the Developer's explicit approval.** Staging is also left to the Developer unless asked. Show `git status`/diff summaries when asked, and propose commit messages for the Developer to approve.
+- Do not commit `Library/`, `Temp/`, `Logs/`, or `UserSettings/` (covered by the Unity `.gitignore` in `Kinked Fury/`).
+- Never run Unity batch mode while the Unity Editor has the project open (the project is locked). Ask the Developer to close it, or use a copy of the project in the scratchpad.
+
+## Running and testing
+
+- Open `Kinked Fury/` in Unity Hub with `6000.3.0f1`; press Play in the test scene to try the whip.
+- Whip test scene setup: in Unity choose menu **Kinked Fury > Create or Update Whip Test Setup** (adds or updates the tester, placeholder player with hand and movement, and test dummy in the open scene; safe to re-run; save the scene afterwards). Controls: hold LMB draw, F or RMB swing, A/D move and face, Tab or 1-9 switch preset.
+- Edit-mode tests (stroke processors, stat derivation): Window > General > Test Runner > EditMode, or in batch mode:
+
+  ```
+  "C:\Program Files\Unity\Hub\Editor\6000.3.0f1\Editor\Unity.exe" -batchmode -nographics -projectPath "Kinked Fury" -runTests -testPlatform EditMode -testResults TestResults.xml -logFile -
+  ```
+
+- Extreme-input tests to keep passing: tight spiral, right-angle zigzag, jagged line, zero-length stroke, single point, stroke past the length cap.
+- Before calling a change done, show test output and/or a Game view screenshot or description (see Code rules).
