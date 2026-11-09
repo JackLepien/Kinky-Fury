@@ -1,4 +1,48 @@
 Author: JackLepien <jacklepien@gmail.com>
+Date:   Mon Nov 9 17:32:49 2026 -0600
+
+    Add transcript for whip feel and preset cleanup session
+    
+    Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+
+Author: JackLepien <jacklepien@gmail.com>
+Date:   Mon Nov 9 17:19:17 2026 -0600
+
+    Add whip sweep/retract easing and remove stroke presets
+    
+    - WhipAttack: Inspector-tunable extend curve, retract time and curve,
+      and optional hit-while-retracting (retract defaults to 0.1 s).
+    - WhipDrawingTester: Simplify > Spline is now the only chain, with
+      tolerance and spline samples exposed; preset switching removed.
+    - StrokePipeline: remove StrokePreset/StrokeStep/StrokeStepType.
+    - Tests and AGENTS.md updated; scene tuning and session transcript included.
+    
+    Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+
+Author: JackLepien <jacklepien@gmail.com>
+Date:   Sun Nov 8 16:08:46 2026 -0600
+
+    Add swappable stroke pipeline, whip playback, and test setup
+    
+    - Stroke processors (resample, Ramer-Douglas-Peucker simplify, Catmull-Rom
+      spline) behind a swappable pipeline; "Simplify > Spline" is the default
+    - Hard length cap, stat derivation (defense, hitbox, damage) with tunable
+      placeholder trade-off rules
+    - Sweep playback anchored at the hand and mirrored when facing left, with
+      chain-of-circles hit detection and a test dummy
+    - Placeholder left/right player movement, larger placeholder sprites
+    - Editor menu "Kinked Fury > Create or Update Whip Test Setup"
+    - Edit-mode tests (28) for processors, cap, stats, sweep, and mirroring
+    - Fill in the Project section of AGENTS.md
+    
+    Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+
+Author: JackLepien <jacklepien@gmail.com>
+Date:   Sun Nov 8 15:35:14 2026 -0600
+
+    Updated .gitignore
+
+Author: JackLepien <jacklepien@gmail.com>
 Date:   Sun Nov 1 23:57:48 2026 -0600
 
     Init Commit with Completed Pitch
