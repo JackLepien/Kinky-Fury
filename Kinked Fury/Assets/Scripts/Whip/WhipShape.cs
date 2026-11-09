@@ -6,7 +6,7 @@ namespace KinkedFury.Whip
     /// <summary>
     /// A finished, saved whip: the processed line re-anchored so its first point is the origin
     /// (the player's hand), plus the stats derived when it was drawn. Immutable snapshot, so redrawing
-    /// or switching presets never changes a swing already in progress.
+    /// or changing processing settings never alters a swing already in progress.
     /// </summary>
     public sealed class WhipShape
     {

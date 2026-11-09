@@ -215,7 +215,7 @@ namespace KinkedFury.Tests
         // ---------- pipeline ----------
 
         [Test]
-        public void Pipeline_AllPresetChains_SurviveEveryExtremeShape()
+        public void Pipeline_SimplifyThenSpline_SurvivesEveryExtremeShape()
         {
             var shapes = new Dictionary<string, List<Vector2>>
             {
@@ -225,11 +225,9 @@ namespace KinkedFury.Tests
                 { "single point", new List<Vector2> { Vector2.one } },
                 { "empty", new List<Vector2>() },
             };
+            // The game's one chain, with the default Inspector values.
             var chains = new List<IStrokeProcessor[]>
             {
-                new IStrokeProcessor[] { new ResampleProcessor(0.25f) },
-                new IStrokeProcessor[] { new SimplifyProcessor(0.08f), new ResampleProcessor(0.25f) },
-                new IStrokeProcessor[] { new ResampleProcessor(0.3f), new SplineProcessor(8), new ResampleProcessor(0.25f) },
                 new IStrokeProcessor[] { new SimplifyProcessor(0.08f), new SplineProcessor(8) },
             };
 

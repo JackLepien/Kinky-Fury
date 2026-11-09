@@ -6,7 +6,7 @@ namespace KinkedFury.Whip
 {
     /// <summary>
     /// Plays the most recently drawn whip shape out from the player's hand: the whip sweeps out to its tip,
-    /// holds briefly, then vanishes. Hits are found by testing a chain of overlapping circles along the visible
+    /// holds briefly, then retracts (each motion shaped by an Inspector curve). Hits are found by testing a chain of overlapping circles along the visible
     /// part of the whip each frame, so spirals and tight bends register as reliably as straight lines.
     /// Placeholder controls: F or right mouse button swings. Facing comes from a PlayerMover on the same object
     /// if there is one; otherwise A/D (or arrow keys) just set facing.
@@ -26,6 +26,16 @@ namespace KinkedFury.Whip
         [SerializeField] private float minSweepTime = 0.05f;
         [Tooltip("How long the fully extended whip stays out (and keeps hitting) before disappearing.")]
         [SerializeField] private float holdTime = 0.12f;
+        [Tooltip("Easing of the sweep. X = progress through the sweep time (0-1), Y = how much of the whip is out (0-1). " +
+                 "Linear keeps the tip at constant speed; a curve that rises steeply then flattens gives a fast snap with a soft finish. " +
+                 "Sweep time still comes from Sweep Speed, so the curve only reshapes the motion.")]
+        [SerializeField] private AnimationCurve extendCurve = AnimationCurve.Linear(0f, 0f, 1f, 1f);
+        [Tooltip("How long the whip takes to pull back to the hand after the hold. 0 = it vanishes instantly.")]
+        [SerializeField] private float retractTime = 0.1f;
+        [Tooltip("Easing of the retraction. X = progress through the retract time (0-1), Y = how much of the whip is still out (1 down to 0).")]
+        [SerializeField] private AnimationCurve retractCurve = AnimationCurve.Linear(0f, 1f, 1f, 0f);
+        [Tooltip("If off, the whip is harmless while pulling back (the visible line still moves).")]
+        [SerializeField] private bool hitWhileRetracting = false;
         [SerializeField] private float lineWidth = 0.1f;
         [SerializeField] private Color lineColor = new Color(0f, 0.9f, 1f, 1f);
 
@@ -103,13 +113,31 @@ namespace KinkedFury.Whip
         private void AdvanceSwing(float deltaTime)
         {
             elapsed += deltaTime;
-            if (elapsed >= sweepTime + holdTime)
+            float retract = Mathf.Max(retractTime, 0f);
+            if (elapsed >= sweepTime + holdTime + retract)
             {
                 EndSwing();
                 return;
             }
 
-            float fraction = Mathf.Clamp01(elapsed / sweepTime);
+            // Phases: extend (eased) -> hold at full length -> retract (eased). Curves are clamped so an
+            // overshooting curve can't ask for more than the whole whip or less than none of it.
+            float fraction;
+            bool canHit = true;
+            if (elapsed < sweepTime)
+            {
+                fraction = extendCurve.Evaluate(elapsed / sweepTime);
+            }
+            else if (elapsed < sweepTime + holdTime)
+            {
+                fraction = 1f;
+            }
+            else
+            {
+                fraction = retractCurve.Evaluate((elapsed - sweepTime - holdTime) / retract);
+                canHit = hitWhileRetracting;
+            }
+            fraction = Mathf.Clamp01(fraction);
             List<Vector2> visibleLocal = WhipSweep.VisiblePrefix(shape.LocalPoints, fraction);
 
             // Draw the visible line, re-anchored every frame so it follows the hand.
@@ -124,6 +152,11 @@ namespace KinkedFury.Whip
             }
 
             // Hit circles along the visible line.
+            if (!canHit)
+            {
+                worldCenters.Clear();
+                return;
+            }
             float radius = shape.Stats.HitboxRadius;
             List<Vector2> localCenters = WhipSweep.CircleCenters(visibleLocal, radius);
             worldCenters = localCenters;
@@ -154,7 +187,7 @@ namespace KinkedFury.Whip
             labelStyle ??= new GUIStyle(GUI.skin.label) { fontSize = 14, normal = { textColor = new Color(0.8f, 0.8f, 0.8f) } };
             string facingText = facing > 0 ? "right" : "left";
             GUI.Label(new Rect(12, Screen.height - 32, 900, 26),
-                $"Hold LMB: draw   |   F or RMB: swing   |   A/D: move (facing {facingText})   |   Tab / 1-9: preset", labelStyle);
+                $"Hold LMB: draw   |   F or RMB: swing   |   A/D: move (facing {facingText})", labelStyle);
         }
 
         private void OnDrawGizmos()

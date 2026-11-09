@@ -7,7 +7,7 @@ namespace KinkedFury.Whip
     /// <summary>
     /// Prototype harness for the drawing pipeline. Hold the left mouse button to draw; the raw stroke
     /// (purple) and the processed stroke (cyan) are shown together with the derived stats.
-    /// Tab or number keys 1-9 switch the processing preset live and re-process the current stroke.
+    /// The stroke is processed with Simplify > Spline; both are tunable in the Inspector.
     /// Setup: add this component to an empty GameObject in a scene that has an orthographic Main Camera.
     /// </summary>
     public class WhipDrawingTester : MonoBehaviour
@@ -17,23 +17,11 @@ namespace KinkedFury.Whip
         [SerializeField] private float minPointDistance = 0.05f;
         [SerializeField] private WhipStatTuning tuning = new WhipStatTuning();
 
-        [Header("Processing (Tab or 1-9 to switch)")]
-        [SerializeField] private int activePreset = 3; // Developer's chosen default: "Simplify > Spline"
-        [SerializeField] private List<StrokePreset> presets = new List<StrokePreset>
-        {
-            new StrokePreset("Resample only",
-                new StrokeStep(StrokeStepType.Resample, 0.25f)),
-            new StrokePreset("Simplify > Resample",
-                new StrokeStep(StrokeStepType.Simplify, 0.08f),
-                new StrokeStep(StrokeStepType.Resample, 0.25f)),
-            new StrokePreset("Resample > Spline > Resample",
-                new StrokeStep(StrokeStepType.Resample, 0.3f),
-                new StrokeStep(StrokeStepType.Spline, 8f),
-                new StrokeStep(StrokeStepType.Resample, 0.25f)),
-            new StrokePreset("Simplify > Spline",
-                new StrokeStep(StrokeStepType.Simplify, 0.08f),
-                new StrokeStep(StrokeStepType.Spline, 8f)),
-        };
+        [Header("Processing (Simplify > Spline)")]
+        [Tooltip("Ramer-Douglas-Peucker tolerance in world units: how far a point may sit from the simplified line before it is kept. Higher = fewer, sharper corners.")]
+        [SerializeField] private float simplifyTolerance = 0.08f;
+        [Tooltip("Smoothing samples inserted per segment of the simplified line. Higher = smoother curves.")]
+        [SerializeField, Min(1)] private int splineSamplesPerSegment = 8;
 
         private Camera cam;
         private StrokeAccumulator accumulator;
@@ -52,14 +40,11 @@ namespace KinkedFury.Whip
             accumulator = new StrokeAccumulator(tuning.maxLength, minPointDistance);
             rawLine = CreateLine("Raw Stroke", new Color(0.65f, 0.4f, 0.95f, 0.55f), 0.06f, 0);
             processedLine = CreateLine("Processed Stroke", new Color(0f, 0.9f, 1f, 1f), 0.08f, 1);
-            activePreset = Mathf.Clamp(activePreset, 0, Mathf.Max(presets.Count - 1, 0));
         }
 
         private void Update()
         {
             if (cam == null || Mouse.current == null) return;
-
-            HandlePresetKeys();
 
             Vector2 mouseWorld = cam.ScreenToWorldPoint(
                 new Vector3(Mouse.current.position.x.ReadValue(),
@@ -97,29 +82,15 @@ namespace KinkedFury.Whip
             return shape != null;
         }
 
-        private void HandlePresetKeys()
-        {
-            Keyboard keyboard = Keyboard.current;
-            if (keyboard == null || presets.Count == 0) return;
-
-            int newPreset = activePreset;
-            if (keyboard.tabKey.wasPressedThisFrame) newPreset = (activePreset + 1) % presets.Count;
-            for (int i = 0; i < Mathf.Min(presets.Count, 9); i++)
-            {
-                if (keyboard[Key.Digit1 + i].wasPressedThisFrame) newPreset = i;
-            }
-
-            if (newPreset != activePreset)
-            {
-                activePreset = newPreset;
-                if (!drawing) Reprocess();
-            }
-        }
-
         private void Reprocess()
         {
-            if (accumulator == null || presets.Count == 0) return;
-            List<IStrokeProcessor> processors = presets[activePreset].BuildProcessors();
+            if (accumulator == null) return;
+            // Simplify removes hand jitter and keeps the real corners; the spline then rounds them into a smooth path.
+            var processors = new List<IStrokeProcessor>
+            {
+                new SimplifyProcessor(simplifyTolerance),
+                new SplineProcessor(splineSamplesPerSegment),
+            };
             processed = StrokePipeline.Run(accumulator.Points, processors);
             stats = WhipStatCalculator.Calculate(processed, tuning);
             SetLine(processedLine, processed);
@@ -151,7 +122,6 @@ namespace KinkedFury.Whip
 
         private void OnGUI()
         {
-            if (presets.Count == 0) return;
             labelStyle ??= new GUIStyle(GUI.skin.label) { fontSize = 16, normal = { textColor = Color.white } };
 
             int rawCount = accumulator != null ? accumulator.Points.Count : 0;
@@ -159,7 +129,6 @@ namespace KinkedFury.Whip
             string capNote = accumulator != null && accumulator.IsCapped ? "  (LENGTH CAP REACHED)" : "";
 
             string text =
-                $"Preset {activePreset + 1}/{presets.Count}: {presets[activePreset].name}   [Tab / 1-9]\n" +
                 $"Raw points: {rawCount}   Processed points: {processed.Count}\n" +
                 $"Drawn length: {rawLength:0.00} / {tuning.maxLength:0.0}{capNote}\n" +
                 $"Processed length: {stats.Length:0.00}   Width: {stats.Width:0.00}   Height: {stats.Height:0.00}\n" +

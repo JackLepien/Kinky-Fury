@@ -54,7 +54,7 @@ When the Developer directs the Agent to save a transcript, save the entire text 
 
 ## Architecture notes
 
-- The whip pipeline is: raw mouse stroke -> ordered list of swappable stroke processors (resample, Ramer-Douglas-Peucker simplify, Catmull-Rom smooth) -> processed points -> stat derivation -> whip playback and collider. Processors and stat derivation are plain C# with no scene dependencies so they can be unit tested. The pipeline is swappable on purpose so game feel can be compared between approaches. Decision: the Developer chose the "Simplify > Spline" chain (preset 4 in `WhipDrawingTester`) as the default after comparing by feel; the other presets stay available for tuning and comparison.
+- The whip pipeline is: raw mouse stroke -> ordered list of swappable stroke processors (resample, Ramer-Douglas-Peucker simplify, Catmull-Rom smooth) -> processed points -> stat derivation -> whip playback and collider. Processors and stat derivation are plain C# with no scene dependencies so they can be unit tested. Decision: the Developer chose the "Simplify > Spline" chain after comparing alternatives by feel, and the other presets were removed. `WhipDrawingTester` builds that chain from two Inspector values (simplify tolerance, spline samples per segment); the other processors stay as tested building blocks (Resample is also used for the hit circles). Whip playback (`WhipAttack`) is tuned in the Inspector: sweep speed, hold time, extend/retract easing curves, retract time.
 - Hard cap on whip length; loadout of 2-3 saved shapes.
 
 ## Agent authority and boundaries
@@ -68,7 +68,7 @@ When the Developer directs the Agent to save a transcript, save the entire text 
 ## Running and testing
 
 - Open `Kinked Fury/` in Unity Hub with `6000.3.0f1`; press Play in the test scene to try the whip.
-- Whip test scene setup: in Unity choose menu **Kinked Fury > Create or Update Whip Test Setup** (adds or updates the tester, placeholder player with hand and movement, and test dummy in the open scene; safe to re-run; save the scene afterwards). Controls: hold LMB draw, F or RMB swing, A/D move and face, Tab or 1-9 switch preset.
+- Whip test scene setup: in Unity choose menu **Kinked Fury > Create or Update Whip Test Setup** (adds or updates the tester, placeholder player with hand and movement, and test dummy in the open scene; safe to re-run; save the scene afterwards). Controls: hold LMB draw, F or RMB swing, A/D move and face.
 - Edit-mode tests (stroke processors, stat derivation): Window > General > Test Runner > EditMode, or in batch mode:
 
   ```
